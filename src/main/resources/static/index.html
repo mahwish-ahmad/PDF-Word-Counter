@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Word Counter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav id="desktop-logo">
+        <div class="logo-container">
+            <div class="word-counter_logo_img">
+                <img src="./pdf-site-logo.png" alt="PDF Logo">
+            </div>
+        </div>
+    </nav>
+    <h2>Upload a PDF to Count Words, Characters, and Paragraphs</h2>
+    <div class="upload-box" id="drop-zone">
+      <form id="uploadForm" enctype="multipart/form-data">
+        <p class="upload-instruction" id="drag-text">Drag & drop your PDF here</p>
+        <p class="style-or">or</p>
+        <div class="custom-upload">
+          <input type="file" name="file" id="fileInput" class="file-upload" accept=".pdf" required>
+          <label for="fileInput" class="custom-browse-btn">Browse PDF</label>
+          <span id="fileName">No file chosen</span>
+        </div>
+        <button type="submit">Upload</button>
+      </form>
+    </div>
+
+    <div id="result" style="margin-top:20px;"></div>
+
+  <script>
+    const dropZone = document.getElementById("drop-zone");
+    const dragText = document.getElementById("drag-text");
+    const fileInput = document.getElementById("fileInput");
+    const form = document.getElementById('uploadForm');
+    const resultDiv = document.getElementById('result');
+
+    let selectedFile = null;
+
+    ["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
+      dropZone.addEventListener(eventName, e => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    });
+
+    dropZone.addEventListener("dragover", () => {
+      dropZone.classList.add("dragover");
+      dragText.textContent = 'Release to Upload';
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragover");
+      dragText.textContent = 'Drag & drop your PDF here';
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      dropZone.classList.remove("dragover");
+      dragText.textContent = 'Drag & drop your PDF here';
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === "application/pdf") {
+        selectedFile = file;
+        fileInput.files = e.dataTransfer.files;
+
+        // Update the file name display
+        document.getElementById("fileName").textContent = selectedFile.name;
+      } 
+      else {
+        alert("Please drop a valid PDF file.");
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      selectedFile = e.target.files[0];
+      if (selectedFile) {
+        document.getElementById("fileName").textContent = selectedFile.name;
+      } 
+      else {
+        document.getElementById("fileName").textContent = "No file chosen";
+      }
+    });
+
+    uploadForm.onsubmit = async (e) => {
+      e.preventDefault();
+
+      if (!selectedFile) {
+        alert("Please select or drop a PDF file.");
+        return;
+      }
+
+      const formData = new FormData(form);
+      formData.append("file", selectedFile);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+      } else {
+        resultDiv.innerHTML = `
+          <p><strong>Word Count:</strong> ${data.wordCount}</p>
+          <p><strong>Character Count:</strong> ${data.charCount}</p>
+          <p><strong>Paragraph Count:</strong> ${data.paragraphCount}</p>
+        `;
+      }
+    };
+  </script>
+</body>
+</html>
